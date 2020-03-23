@@ -1,0 +1,29 @@
+{
+  "name": "serverless-athena",
+  "version": "1.0.0",
+  "description": "Serverless plugin to manage AWS Athena table",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/qwantix/serverless-athena"
+  },
+  "keywords": [
+    "serverless",
+    "serverless-plugin",
+    "aws",
+    "athena"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Brice Dauzats",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.643.0"
+  },
+  "devDependencies": {
+    "eslint": "^5.14.1",
+    "eslint-config-airbnb-base": "^13.1.0",
+    "eslint-plugin-import": "^2.16.0"
+  }
+}
