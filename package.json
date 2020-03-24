@@ -18,9 +18,7 @@
   },
   "author": "Brice Dauzats",
   "license": "MIT",
-  "dependencies": {
-    "aws-sdk": "^2.643.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "eslint": "^5.14.1",
     "eslint-config-airbnb-base": "^13.1.0",

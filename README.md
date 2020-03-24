@@ -29,7 +29,6 @@ custom:
   athena:
     databases: # list of your dbs
       - name: my-db # your database name
-        region: eu-west-1 # optional region
         output: s3://my-athena-output-bucket/ # required, your results bucket
         ddl: $(file(my-database.sql)} # optional, your DDL containing the CREATE DATABASE statement
         tables: # list of yout tables

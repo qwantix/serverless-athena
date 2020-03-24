@@ -1,18 +1,11 @@
 /* eslint-disable no-shadow */
 
-
-const aws = require('aws-sdk');
-
 function getExecutor({
-  region,
+  provider,
   database,
   output,
   workgroup,
 }) {
-  const athena = new aws.Athena({
-    region,
-  });
-
   return async (sql) => {
     const params = {
       QueryString: sql,
@@ -25,17 +18,16 @@ function getExecutor({
       WorkGroup: workgroup,
     };
 
-    // console.log('\nSQL', sql, '\n')
-
+    // console.log('\nSQL', sql, '\n');
     const {
       QueryExecutionId,
-    } = await athena.startQueryExecution(params).promise();
+    } = await provider.request('Athena', 'startQueryExecution', params);
     let waitTime = 0;
     const wait = async () => {
       waitTime = Math.min(1000, waitTime + 100);
-      const res = await athena.getQueryExecution({
+      const res = await provider.request('Athena', 'getQueryExecution', {
         QueryExecutionId,
-      }).promise();
+      });
       switch (res.QueryExecution.Status.State) {
         case 'QUEUED':
         case 'RUNNING':
@@ -69,6 +61,7 @@ class ServerlessAthenaPlugin {
       'remove:remove': this.remove.bind(this),
     };
     this.partitions = new Map();
+    this.provider = this.serverless.getProvider('aws');
   }
 
   get config() {
@@ -78,10 +71,8 @@ class ServerlessAthenaPlugin {
       if (!(athena.databases instanceof Array)) {
         throw new Error('custome.athena.databases must be an array of databases');
       }
-      const { region } = this.serverless.service.provider;
       athena.databases.forEach((config) => {
         const db = {
-          region: config.region || region,
           name: config.name || config.database,
           workgroup: config.workgroup || 'primary',
           output: config.output,
@@ -102,7 +93,6 @@ class ServerlessAthenaPlugin {
           const out = {};
           const {
             name,
-            region,
             workgroup,
             ddl,
             keepPartitions,
@@ -116,7 +106,6 @@ class ServerlessAthenaPlugin {
           }
           out.fullname = `${db.name}.${name}`;
           out.name = name;
-          out.region = region || db.region;
           out.ddl = ddl;
           out.keepPartitions = !!keepPartitions;
           out.workgroup = workgroup || db.workgroup;
@@ -158,17 +147,14 @@ class ServerlessAthenaPlugin {
 
   async backupPartitions(database, table) {
     this.log(`${database}.${table}: backuping partitions`);
-    const glue = new aws.Glue({
-      region: this.config.databases.find(d => d.name === database).region,
-    });
     let glueTable;
     try {
       const {
         Table,
-      } = await glue.getTable({
+      } = await this.provider.request('Glue', 'getTable', {
         DatabaseName: database,
         Name: table,
-      }).promise();
+      });
       glueTable = Table;
     } catch (e) {
       if (e.code === 'EntityNotFoundException') {
@@ -184,12 +170,12 @@ class ServerlessAthenaPlugin {
       const {
         NextToken,
         Partitions,
-      } = await glue.getPartitions({
+      } = await this.provider.request('Glue', 'getPartitions', {
         DatabaseName: database,
         TableName: table,
         NextToken: nextToken,
         MaxResults: 1000,
-      }).promise();
+      });
       partitions.push(...Partitions.map(p => ({
         values: cols.map((c, i) => ({
           name: c,
@@ -239,8 +225,8 @@ class ServerlessAthenaPlugin {
     return Promise.all(databases.map(async (d) => {
       this.log('Found database:', d.name);
       const executor = getExecutor({
+        provider: this.provider,
         database: d.name,
-        region: d.region,
         workgroup: d.workgroup,
         output: d.output,
       });
@@ -276,8 +262,8 @@ class ServerlessAthenaPlugin {
     this.log('Entering remove');
     return Promise.all(databases.map(async (d) => {
       const executor = getExecutor({
+        provider: this.provider,
         database: d.name,
-        region: d.region,
         workgroup: d.workgroup,
         output: d.output,
       });
