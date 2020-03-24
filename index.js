@@ -66,7 +66,7 @@ class ServerlessAthenaPlugin {
     this.options = options;
     this.hooks = {
       'after:deploy:deploy': this.deploy.bind(this),
-      // 'remove:remove': this.destroy.bind(this),
+      'remove:remove': this.remove.bind(this),
     };
     this.partitions = new Map();
   }
@@ -269,11 +269,11 @@ class ServerlessAthenaPlugin {
     }));
   }
 
-  async destroy() {
+  async remove() {
     const {
       databases,
     } = this.config;
-    this.log('Entering destroy');
+    this.log('Entering remove');
     return Promise.all(databases.map(async (d) => {
       const executor = getExecutor({
         database: d.name,
@@ -282,7 +282,7 @@ class ServerlessAthenaPlugin {
         output: d.output,
       });
       await this.removeDatabase(executor, d);
-      this.log('Leaving destroy');
+      this.log('Leaving remove');
     }));
   }
 
