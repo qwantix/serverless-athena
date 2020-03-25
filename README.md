@@ -1,7 +1,7 @@
-Serverless Athena
+Serverless Athena Plugin
 ============
 
-A plugin to manage athena table creation
+Serverless plugin to manage and deploy AWS Athena table
 
 ## Installation
 
@@ -28,11 +28,11 @@ in your `serverless.yml`
 custom:
   athena:
     databases: # list of your dbs
-      - name: my-db # your database name
+      - name: my-db # required, your database name, do not use an existing database, will be dropped in deployement process
         output: s3://my-athena-output-bucket/ # required, your results bucket
         ddl: $(file(my-database.sql)} # optional, your DDL containing the CREATE DATABASE statement
         tables: # list of yout tables
-          - name: mytable # Table name
+          - name: mytable # required, table name
             ddl: $(file(my-table.sql)} # required, DDL containing the CREATE TABLE
             keepPartitions: true # force backup and restore partitions
 ```
@@ -51,4 +51,13 @@ LOCATION 's3://${self:provider.environment.MY_BUCKET}/'
 TBLPROPERTIES ('has_encrypted_data'='true');
 
 ```
+
+## Workflow
+
+1. if `keepPartition = true` backuping partitions
+2. Drop database, **therefore, do not use a existing database**
+3. Create database
+4. Create tables
+5. Restore partitions if `keepPartition = true`
+
 

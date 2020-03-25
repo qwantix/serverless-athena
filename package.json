@@ -1,7 +1,7 @@
 {
   "name": "serverless-athena",
   "version": "1.0.0",
-  "description": "Serverless plugin to manage AWS Athena table",
+  "description": "Serverless plugin to manage and deploy AWS Athena table",
   "main": "index.js",
   "repository": {
     "type": "git",
@@ -10,6 +10,7 @@
   "keywords": [
     "serverless",
     "serverless-plugin",
+    "plugin",
     "aws",
     "athena"
   ],
