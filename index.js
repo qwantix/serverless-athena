@@ -157,7 +157,8 @@ class ServerlessAthenaPlugin {
       });
       glueTable = Table;
     } catch (e) {
-      if (e.code === 'EntityNotFoundException') {
+      const code = e.providerError ? e.providerError.code : e.code;
+      if (code === 'EntityNotFoundException') {
         return; // Table doesn't exists
       }
       throw e;
