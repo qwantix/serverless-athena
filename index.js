@@ -232,12 +232,11 @@ class ServerlessAthenaPlugin {
         output: d.output,
       });
 
-      // Backuping partitions
-      await Promise.all(
-        d.tables
-          .filter(t => t.keepPartitions)
-          .map(t => this.backupPartitions(d.name, t.name)),
-      );
+      // Backuping partitions in serie
+      await d.tables
+        .filter(t => t.keepPartitions)
+        .reduce((p, t) => p.then(() => this.backupPartitions(d.name, t.name)), Promise.resolve());
+
       await this.removeDatabase(executor, d);
       await this.createDatabase(executor, d);
       await Promise.all(
