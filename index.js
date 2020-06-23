@@ -201,7 +201,7 @@ class ServerlessAthenaPlugin {
 
     this.log(`${database}.${table}: restoring ${partitions.length} partitions`);
     if (!partitions.length) return;
-    let query = `ALTER TABLE ${table} ADD `;
+    let query = `ALTER TABLE ${table} ADD IF NOT EXISTS `;
     query += partitions
       .map(({
         values,
