@@ -40,6 +40,8 @@ function getExecutor({
         case 'SUCCEEDED':
           return Promise.resolve();
         case 'FAILED':
+          console.log(`FAILED QUERY ID ${QueryExecutionId} with params ${JSON.stringify(params)}`)
+          console.log(`RES: ${res}`)
           throw new Error('Query failed');
         case 'CANCELLED':
           throw new Error('Query as been cancelled');
