@@ -82,7 +82,7 @@ class ServerlessAthenaPlugin {
           output: config.output,
           ddl: config.ddl,
           existing: !!config.existing,
-          sequential: config.sequential || true,
+          sequential: config.sequential || false,
           tables: [],
         };
 
@@ -248,7 +248,6 @@ class ServerlessAthenaPlugin {
       if (d.sequential) {
         this.log('Creating table sequentially')
         for (let table of d.tables) {
-          this.log(`Creating ${table.name}`);
           await this.createTable(executor, table);
         }
       } else {

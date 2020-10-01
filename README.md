@@ -31,6 +31,7 @@ custom:
       - name: my-db # required, your database name, do not use an existing database, will be dropped in deployement process
         output: s3://my-athena-output-bucket/ # required, your results bucket
         ddl: $(file(my-database.sql)} # optional, your DDL containing the CREATE DATABASE statement
+        sequential: true #optional (default: false), true if you want to create the tables sequentially in case of dependencies between tables and views
         tables: # list of yout tables
           - name: mytable # required, table name
             ddl: $(file(my-table.sql)} # required, DDL containing the CREATE TABLE
