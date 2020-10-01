@@ -40,8 +40,10 @@ function getExecutor({
         case 'SUCCEEDED':
           return Promise.resolve();
         case 'FAILED':
-          console.log(`FAILED QUERY ID ${QueryExecutionId} with params ${JSON.stringify(params)}`)
-          console.log(`RES: ${res}`)
+          console.error(`
+                  FAILED QUERY ID ${QueryExecutionId} 
+                  REASON: ${res.QueryExecution.Status.StateChangeReason}`
+          )
           throw new Error('Query failed');
         case 'CANCELLED':
           throw new Error('Query as been cancelled');
@@ -80,6 +82,7 @@ class ServerlessAthenaPlugin {
           output: config.output,
           ddl: config.ddl,
           existing: !!config.existing,
+          sequential: config.sequential || false,
           tables: [],
         };
 
@@ -241,10 +244,19 @@ class ServerlessAthenaPlugin {
 
       await this.removeDatabase(executor, d);
       await this.createDatabase(executor, d);
-      await Promise.all(
-        d.tables
-          .map(t => this.createTable(executor, t)),
-      );
+
+      if (d.sequential) {
+        this.log('Creating table sequentially')
+        for (let table of d.tables) {
+          await this.createTable(executor, table);
+        }
+      } else {
+        this.log('Creating tables')
+        await Promise.all(
+          d.tables
+            .map(t => this.createTable(executor, t)),
+        );
+      }
 
       // Restoring partitions
       await Promise.all(
