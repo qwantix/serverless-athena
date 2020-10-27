@@ -83,6 +83,7 @@ class ServerlessAthenaPlugin {
           ddl: config.ddl,
           existing: !!config.existing,
           sequential: config.sequential || false,
+          removeDatabase: config.removeDatabase || true,
           tables: [],
         };
 
@@ -242,7 +243,9 @@ class ServerlessAthenaPlugin {
         .filter(t => t.keepPartitions)
         .reduce((p, t) => p.then(() => this.backupPartitions(d.name, t.name)), Promise.resolve());
 
-      await this.removeDatabase(executor, d);
+      if (d.removeDatase) {
+        await this.removeDatabase(executor, d);
+      }
       await this.createDatabase(executor, d);
 
       if (d.sequential) {
