@@ -36,6 +36,15 @@ custom:
           - name: mytable # required, table name
             ddl: $(file(my-table.sql)} # required, DDL containing the CREATE TABLE
             keepPartitions: true # force backup and restore partitions
+      - name: my-db2 # required, your database name, do not use an existing database, will be dropped in deployement process
+        output: s3://my-athena-output-bucket/ # required, your results bucket
+        ddl: $(file(my-database.sql)} # optional, your DDL containing the CREATE DATABASE statement
+        enabled: false #optional (default: true), plugin will ignore this database creation
+        removeDatabase: false #optional (default: true), if this flag is set to false the plugin will first save the partitions and them delete and recreate the database
+        tables: # list of yout tables
+          - name: mytable # required, table name
+            ddl: $(file(my-table.sql)} # required, DDL containing the CREATE TABLE
+            keepPartitions: true # force backup and restore partitions
 ```
 
 and

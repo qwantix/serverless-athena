@@ -83,6 +83,7 @@ class ServerlessAthenaPlugin {
           ddl: config.ddl,
           existing: !!config.existing,
           sequential: config.sequential || false,
+          enabled: config.enabled || true,
           removeDatabase: config.removeDatabase || true,
           tables: [],
         };
@@ -121,8 +122,9 @@ class ServerlessAthenaPlugin {
       }, databases);
     }
 
+
     return {
-      databases,
+      "databases": databases.filter(element => element.enabled),
     };
   }
 
