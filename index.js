@@ -83,6 +83,8 @@ class ServerlessAthenaPlugin {
           ddl: config.ddl,
           existing: !!config.existing,
           sequential: config.sequential || false,
+          enabled: config.enabled || true,
+          removeDatabase: config.removeDatabase || true,
           tables: [],
         };
 
@@ -120,8 +122,9 @@ class ServerlessAthenaPlugin {
       }, databases);
     }
 
+
     return {
-      databases,
+      "databases": databases.filter(element => element.enabled),
     };
   }
 
@@ -237,12 +240,14 @@ class ServerlessAthenaPlugin {
         output: d.output,
       });
 
-      // Backuping partitions in serie
-      await d.tables
-        .filter(t => t.keepPartitions)
-        .reduce((p, t) => p.then(() => this.backupPartitions(d.name, t.name)), Promise.resolve());
 
-      await this.removeDatabase(executor, d);
+      if (d.removeDatase) {
+        // Backuping partitions in serie
+        await d.tables
+          .filter(t => t.keepPartitions)
+          .reduce((p, t) => p.then(() => this.backupPartitions(d.name, t.name)), Promise.resolve());
+        await this.removeDatabase(executor, d);
+      }
       await this.createDatabase(executor, d);
 
       if (d.sequential) {
@@ -258,12 +263,14 @@ class ServerlessAthenaPlugin {
         );
       }
 
-      // Restoring partitions
-      await Promise.all(
-        d.tables
-          .filter(t => t.keepPartitions)
-          .map(t => this.restorePartitions(executor, d.name, t.name)),
-      );
+      if (d.removeDatabase) {
+        // Restoring partitions
+        await Promise.all(
+          d.tables
+            .filter(t => t.keepPartitions)
+            .map(t => this.restorePartitions(executor, d.name, t.name)),
+        );
+      }
 
       this.log('Leaving deploy');
     }));
