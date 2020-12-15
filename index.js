@@ -71,11 +71,18 @@ class ServerlessAthenaPlugin {
       if (!(athena.databases instanceof Array)) {
         throw new Error('custome.athena.databases must be an array of databases');
       }
+
+      const defaults = {
+        catalog: athena.catalog || 'AwsDataCatalog',
+        workgroup: athena.workgroup || 'primary',
+        output: athena.output,
+      };
+
       athena.databases.forEach((config) => {
         const db = {
           name: config.name || config.database,
-          workgroup: config.workgroup || 'primary',
-          output: config.output,
+          workgroup: config.workgroup || defaults.workgroup,
+          output: config.output || defaults.output,
           ddl: config.ddl,
           existing: !!config.existing,
           tables: [],
