@@ -2,6 +2,7 @@
 
 function getExecutor({
   provider,
+  catalog,
   database,
   output,
   workgroup,
@@ -11,6 +12,7 @@ function getExecutor({
       QueryString: sql,
       QueryExecutionContext: {
         Database: database,
+        Catalog: catalog,
       },
       ResultConfiguration: {
         OutputLocation: output,
@@ -80,6 +82,7 @@ class ServerlessAthenaPlugin {
 
       athena.databases.forEach((config) => {
         const db = {
+          catalog: config.catalog || defaults.catalog,
           name: config.name || config.database,
           workgroup: config.workgroup || defaults.workgroup,
           output: config.output || defaults.output,
