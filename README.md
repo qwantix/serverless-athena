@@ -61,3 +61,18 @@ TBLPROPERTIES ('has_encrypted_data'='true');
 5. Restore partitions if `keepPartition = true`
 
 
+## TODO
+
+- [ ] Doing dryrun pre-deployement on tmp db to validate all ddl
+- [ ] Backup partitions in file to manualy restore it if process fail
+- [ ] Update only tables or db if updated
+- [ ] Use default config values for all db (output, ...)
+- [ ] Data catalog support
+- [ ] Allow to execute raw sql like add partition
+
+From @PauloCarneiro99 :
+- [ ] Enable / Disable database or table from sls
+- [ ] Sequential deployement by default
+- [ ] Remove previously deployed database if not present
+
+
