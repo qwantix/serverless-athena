@@ -237,6 +237,7 @@ class ServerlessAthenaPlugin {
     return Promise.all(databases.map(async (d) => {
       this.log('Found database:', d.name);
       const executor = getExecutor({
+        catalog: d.catalog,
         provider: this.provider,
         database: d.name,
         workgroup: d.workgroup,
