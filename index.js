@@ -236,6 +236,12 @@ class ServerlessAthenaPlugin {
     this.log('Entering deploy');
     return Promise.all(databases.map(async (d) => {
       this.log('Found database:', d.name);
+      const dbExecutor = getExecutor({
+        catalog: d.catalog,
+        provider: this.provider,
+        workgroup: d.workgroup,
+        output: d.output,
+      });
       const executor = getExecutor({
         catalog: d.catalog,
         provider: this.provider,
@@ -249,8 +255,8 @@ class ServerlessAthenaPlugin {
         .filter(t => t.keepPartitions)
         .reduce((p, t) => p.then(() => this.backupPartitions(d.name, t.name)), Promise.resolve());
 
-      await this.removeDatabase(executor, d);
-      await this.createDatabase(executor, d);
+      await this.removeDatabase(dbExecutor, d);
+      await this.createDatabase(dbExecutor, d);
       await Promise.all(
         d.tables
           .map(t => this.createTable(executor, t)),
