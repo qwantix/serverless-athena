@@ -91,7 +91,11 @@ class ServerlessAthenaPlugin {
           tables: [],
         };
 
-        if (!config.output) {
+        db.ddl = db.ddl || `CREATE DATABASE \`${config.name}\`
+            WITH DBPROPERTIES('creator' = 'serverless-athena');
+        `;
+
+        if (!db.output) {
           throw new Error("'output' is empty");
         }
 
@@ -138,10 +142,7 @@ class ServerlessAthenaPlugin {
 
   async createDatabase(executor, config) {
     this.log(`${config.name}: creating database`);
-    const ddl = config.ddl || `CREATE DATABASE \`${config.name}\`
-        WITH DBPROPERTIES('creator' = 'serverless-athena');
-    `;
-    return executor(ddl);
+    return executor(config.ddl);
   }
 
   async removeTable(executor, config) {
