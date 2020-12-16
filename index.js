@@ -303,9 +303,9 @@ class ServerlessAthenaPlugin {
     return executor(`DROP TABLE IF EXISTS ${name}`);
   }
 
-  async createTable(executor, config) {
-    this.log(`${config.name}: creating table`);
-    return executor(config.ddl);
+  async createTable(executor, name, ddl) {
+    this.log(`${name}: creating table`);
+    return executor(ddl);
   }
 
   async tableUpdated(config, table) {
@@ -407,10 +407,10 @@ class ServerlessAthenaPlugin {
     }
     const needRemove = await this.tableUpdated(tableConfig, table);
     if (needRemove) {
-      await this.removeTable(executor, tableConfig);
+      await this.removeTable(executor, tableConfig.name);
     }
     if (!table || needRemove) {
-      await this.createTable(executor, tableConfig);
+      await this.createTable(executor, tableConfig.name, tableConfig.ddl);
     }
     await this.setTableParameters(executor, tableConfig, {
       'sls.athena.hash': hash(tableConfig.ddl),
