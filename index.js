@@ -325,26 +325,12 @@ class ServerlessAthenaPlugin {
     return executor(query)
   }
 
-  async backupPartitions(database, table) {
-    this.log(`${database}.${table}: backuping partitions`);
-    let glueTable;
-    try {
-      const {
-        Table,
-      } = await this.provider.request('Glue', 'getTable', {
-        DatabaseName: database,
-        Name: table,
-      });
-      glueTable = Table;
-    } catch (e) {
-      const code = e.providerError ? e.providerError.code : e.code;
-      if (code === 'EntityNotFoundException') {
-        return; // Table doesn't exists
-      }
-      throw e;
-    }
+  async backupPartitions(catalog, database, tableName) {
+    this.log(`${database}.${tableName}: backuping partitions`);
 
-    const cols = glueTable.PartitionKeys.map(p => p.Name);
+    const table = await this.getTable(catalog, database, tableName)
+
+    const cols = table.PartitionKeys.map(p => p.Name);
     const partitions = [];
 
     const grabPartitions = async (nextToken) => {
@@ -353,7 +339,7 @@ class ServerlessAthenaPlugin {
         Partitions,
       } = await this.provider.request('Glue', 'getPartitions', {
         DatabaseName: database,
-        TableName: table,
+        TableName: tableName,
         NextToken: nextToken,
         MaxResults: 1000,
       });
@@ -372,8 +358,8 @@ class ServerlessAthenaPlugin {
 
     await grabPartitions();
 
-    this.log(`${database}.${table}: ${partitions.length} partitions backuped`);
-    this.partitions.set(`${database}.${table}`, partitions);
+    this.log(`${database}.${tableName}: ${partitions.length} partitions backuped`);
+    this.partitions.set(`${database}.${tableName}`, partitions);
   }
 
   async restorePartitions(executor, database, table) {
@@ -403,7 +389,7 @@ class ServerlessAthenaPlugin {
     const hasPartitions = table && table.PartitionKeys && table.PartitionKeys.length > 0
     if (hasPartitions) {
       // Backup partition only if is partionned
-      await this.backupPartitions(tableConfig.database, tableConfig.name);
+      await this.backupPartitions(tableConfig.catalog, tableConfig.database, tableConfig.name);
     }
     const needRemove = await this.tableUpdated(tableConfig, table);
     if (needRemove) {
