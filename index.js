@@ -1,10 +1,12 @@
 /* eslint-disable no-shadow */
 
-const crypto = require('crypto')
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 // Return hash of str
 function hash(str) {
-  return crypto.createHash('md5').update(str).digest('hex')
+  return crypto.createHash('md5').update(str).digest('hex');
 }
 
 
@@ -102,8 +104,12 @@ class ServerlessAthenaPlugin {
       'after:deploy:deploy': this.deploy.bind(this),
       'remove:remove': this.remove.bind(this),
     };
-    this.partitions = new Map();
     this.provider = this.serverless.getProvider('aws');
+    this.servicePath = this.serverless.config.servicePath || '';
+    this.packagePath =
+      this.options.package ||
+      this.serverless.service.package.path ||
+      path.join(this.servicePath || '.', '.serverless');
   }
 
   get config() {
@@ -352,12 +358,10 @@ class ServerlessAthenaPlugin {
     } while (nextToken)
 
     this.log(`${database}.${tableName}: ${partitions.length} partitions backuped`);
-    this.partitions.set(`${database}.${tableName}`, partitions);
+    return partitions;
   }
 
-  async restorePartitions(executor, database, table) {
-    const partitions = this.partitions.get(`${database}.${table}`) || [];
-
+  async restorePartitions(executor, database, table, partitions) {
     this.log(`${database}.${table}: restoring ${partitions.length} partitions`);
     if (!partitions.length) return;
     let query = `ALTER TABLE ${table} ADD IF NOT EXISTS `;
@@ -380,9 +384,14 @@ class ServerlessAthenaPlugin {
   async deployTable(executor, tableConfig, table) {
     this.log(`${tableConfig.fullname}: deploy`);
     const hasPartitions = table && table.PartitionKeys && table.PartitionKeys.length > 0
+    let partitions
     if (hasPartitions && tableConfig.keepPartitions) {
       // Backup partition only if is partionned
-      await this.backupPartitions(tableConfig.catalog, tableConfig.database, tableConfig.name);
+      partitions = await this.backupPartitions(tableConfig.catalog, tableConfig.database, tableConfig.name);
+      // Backup in file
+      const file = path.join(this.packagePath,
+        `athena-${[tableConfig.catalog, tableConfig.database, tableConfig.name].join('-')}.partitions.json`)
+      fs.writeFileSync(file, JSON.stringify(partitions));
     }
     const needRemove = await this.tableUpdated(tableConfig, table);
     if (needRemove) {
@@ -398,9 +407,9 @@ class ServerlessAthenaPlugin {
 
     const newTable = await this.getTable(tableConfig.catalog, tableConfig.database, tableConfig.name);
     const newTablePartionned = newTable.PartitionKeys && newTable.PartitionKeys.length > 0;
-    if (newTablePartionned) {
+    if (newTablePartionned && partitions && partitions.length) {
       // Restore partition if new table is partionned
-      await this.restorePartitions(executor, tableConfig.database, tableConfig.name)
+      await this.restorePartitions(executor, tableConfig.database, tableConfig.name, partitions)
     }
     this.log(`${tableConfig.fullname}: done`);
   }
