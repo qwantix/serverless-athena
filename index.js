@@ -177,7 +177,7 @@ class ServerlessAthenaPlugin {
             out.fullname = `${db.name}.${name}`;
             out.name = name;
             out.ddl = ddl;
-            out.keepPartitions = !!keepPartitions;
+            out.keepPartitions = keepPartitions === false ? false : true;
             out.workgroup = workgroup || db.workgroup;
             return out;
           });
@@ -387,7 +387,7 @@ class ServerlessAthenaPlugin {
   async deployTable(executor, tableConfig, table) {
     this.log(`${tableConfig.fullname}: deploy`);
     const hasPartitions = table && table.PartitionKeys && table.PartitionKeys.length > 0
-    if (hasPartitions) {
+    if (hasPartitions && tableConfig.keepPartitions) {
       // Backup partition only if is partionned
       await this.backupPartitions(tableConfig.catalog, tableConfig.database, tableConfig.name);
     }
