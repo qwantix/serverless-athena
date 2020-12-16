@@ -27,10 +27,14 @@ in your `serverless.yml`
 ```yml
 custom:
   athena:
+    catalog: AwsDataCatalog #optional (default: AwsDataCatalog)
     databases: # list of your dbs
       - name: my-db # required, your database name, do not use an existing database, will be dropped in deployement process
+        catalog: AwsDataCatalog #optional (default: AwsDataCatalog)
         output: s3://my-athena-output-bucket/ # required, your results bucket
-        ddl: $(file(my-database.sql)} # optional, your DDL containing the CREATE DATABASE statement
+        description: My demo database # optional, table comment
+        properties: # optional, db properties
+          - author: Me
         tables: # list of yout tables
           - name: mytable # required, table name
             ddl: $(file(my-table.sql)} # required, DDL containing the CREATE TABLE
@@ -65,14 +69,18 @@ TBLPROPERTIES ('has_encrypted_data'='true');
 
 - [ ] Doing dryrun pre-deployement on tmp db to validate all ddl
 - [ ] Backup partitions in file to manualy restore it if process fail
-- [ ] Update only tables or db if updated
-- [ ] Use default config values for all db (output, ...)
-- [ ] Data catalog support
+- [x] Update only tables or db if updated
+- [x] Use default config values for all db (output, ...)
+- [x] Data catalog support
 - [ ] Allow to execute raw sql like add partition
 
 From @PauloCarneiro99 :
-- [ ] Enable / Disable database or table from sls
-- [ ] Sequential deployement by default
-- [ ] Remove previously deployed database if not present
+- [x] Enable / Disable database or table from sls
+- [x] Sequential deployement by default
+- [x] Remove previously deployed database if not present
 
 
+
+# Changelog
+v2.0.0
+- Removing custom ddl on database
