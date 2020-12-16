@@ -298,13 +298,13 @@ class ServerlessAthenaPlugin {
   }
 
 
-  async removeTable(executor, config) {
-    this.log(`${config.fullname}: removing table`);
-    return executor(`DROP TABLE IF EXISTS ${config.name}`);
+  async removeTable(executor, name) {
+    this.log(`${name}: removing table`);
+    return executor(`DROP TABLE IF EXISTS ${name}`);
   }
 
   async createTable(executor, config) {
-    this.log(`${config.fullname}: creating table`);
+    this.log(`${config.name}: creating table`);
     return executor(config.ddl);
   }
 
@@ -400,7 +400,7 @@ class ServerlessAthenaPlugin {
 
   async deployTable(executor, tableConfig, table) {
     this.log(`${tableConfig.fullname}: deploy`);
-    const hasPartitions = table.PartitionKeys && table.PartitionKeys.length > 0
+    const hasPartitions = table && table.PartitionKeys && table.PartitionKeys.length > 0
     if (hasPartitions) {
       // Backup partition only if is partionned
       await this.backupPartitions(tableConfig.database, tableConfig.name);
