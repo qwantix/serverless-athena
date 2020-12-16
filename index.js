@@ -212,7 +212,7 @@ class ServerlessAthenaPlugin {
         NextToken: nextToken,
       });
       list.push(...res.DatabaseList);
-      nextToken = res.nextToken;
+      nextToken = res.NextToken;
     } while (nextToken)
     return list
   }
@@ -273,7 +273,7 @@ class ServerlessAthenaPlugin {
         NextToken: nextToken,
       });
       list.push(...res.TableMetadataList);
-      nextToken = res.nextToken;
+      nextToken = res.NextToken;
     } while (nextToken)
     return list
   }
@@ -333,30 +333,23 @@ class ServerlessAthenaPlugin {
     const cols = table.PartitionKeys.map(p => p.Name);
     const partitions = [];
 
-    const grabPartitions = async (nextToken) => {
-      const {
-        NextToken,
-        Partitions,
-      } = await this.provider.request('Glue', 'getPartitions', {
+    let nextToken = null
+    do {
+      const res = await this.provider.request('Glue', 'getPartitions', {
         DatabaseName: database,
         TableName: tableName,
         NextToken: nextToken,
         MaxResults: 1000,
       });
-      partitions.push(...Partitions.map(p => ({
+      partitions.push(...res.Partitions.map(p => ({
         values: cols.map((c, i) => ({
           name: c,
           value: p.Values[i],
         })),
         location: p.StorageDescriptor.Location,
       })));
-
-      if (NextToken) {
-        await grabPartitions(NextToken);
-      }
-    };
-
-    await grabPartitions();
+      nextToken = res.NextToken;
+    } while (nextToken)
 
     this.log(`${database}.${tableName}: ${partitions.length} partitions backuped`);
     this.partitions.set(`${database}.${tableName}`, partitions);
