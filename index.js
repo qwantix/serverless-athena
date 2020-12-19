@@ -364,21 +364,34 @@ class ServerlessAthenaPlugin {
   async restorePartitions(executor, database, table, partitions) {
     this.log(`${database}.${table}: restoring ${partitions.length} partitions`);
     if (!partitions.length) return;
-    let query = `ALTER TABLE ${table} ADD IF NOT EXISTS `;
-    query += partitions
-      .map(({
-        values,
-        location,
-      }) => {
+    // We use add partition with sql instead of glue api, more concise
+
+    // The maximum allowed query string length is 262144 bytes, where the strings are encoded in UTF-8.
+    // This is not an adjustable quota.
+    // https://docs.aws.amazon.com/athena/latest/ug/service-limits.html
+    const querySizeLimit = 262144
+    let i = 0;
+    while (i < partitions.length) {
+      let query = `ALTER TABLE ${table} ADD IF NOT EXISTS `;
+      for (; i < partitions.length; i++) {
+        const {
+          values,
+          location
+        } = partitions[i];
         const cols = values.map(({
           name,
           value,
         }) => `\`${name}\` = '${value}'`);
-        return `PARTITION (${cols}) LOCATION '${location}'`;
-      })
-      .join(' ');
+        const s = `PARTITION (${cols}) LOCATION '${location}'`;
+        if (Buffer.byteLength(query + s, 'utf8') > querySizeLimit) {
+          i--;
+          break
+        }
+        query += s
+      }
+      await executor(query);
+    }
 
-    await executor(query);
   }
 
   async deployTable(executor, tableConfig, table) {
