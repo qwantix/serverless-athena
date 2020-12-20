@@ -17,7 +17,7 @@ function getExecutor({
   output,
   workgroup,
 }) {
-  return async (sql) => {
+  return async (sql, returnResults = false) => {
     const params = {
       QueryString: sql,
       QueryExecutionContext: {
@@ -30,11 +30,12 @@ function getExecutor({
       WorkGroup: workgroup,
     };
 
-    console.log('\nSQL', sql, '\n');
+    console.log('\nSQL:', sql, '\n');
     const {
       QueryExecutionId,
     } = await provider.request('Athena', 'startQueryExecution', params);
     let waitTime = 0;
+    let result;
     const wait = async () => {
       waitTime = Math.min(1000, waitTime + 100);
       const res = await provider.request('Athena', 'getQueryExecution', {
@@ -50,6 +51,11 @@ function getExecutor({
             }, waitTime);
           });
         case 'SUCCEEDED':
+          if (returnResults) {
+            result = provider.request('Athena', 'getQueryResults', {
+              QueryExecutionId,
+            });
+          }
           return Promise.resolve();
         case 'FAILED':
           throw new Error(`Query failed: ${res.QueryExecution.Status.StateChangeReason}`);
@@ -60,6 +66,7 @@ function getExecutor({
       }
     };
     await wait();
+    return result;
   };
 }
 
@@ -314,6 +321,11 @@ class ServerlessAthenaPlugin {
     return executor(ddl);
   }
 
+  async getTableDDL(executor, name) {
+    const res = await executor(`SHOW CREATE TABLE ${name}`, true);
+    return res.ResultSet.Rows.map(r => r.Data[0].VarCharValue).join('\n');
+  }
+
   async tableUpdated(config, table) {
     if (!table) {
       return true
@@ -407,11 +419,21 @@ class ServerlessAthenaPlugin {
       fs.writeFileSync(file, JSON.stringify(partitions));
     }
     const needRemove = await this.tableUpdated(tableConfig, table);
+    let backupedDDL;
     if (needRemove) {
+      backupedDDL = await this.getTableDDL(executor, tableConfig.name);
       await this.removeTable(executor, tableConfig.name);
     }
     if (!table || needRemove) {
-      await this.createTable(executor, tableConfig.name, tableConfig.ddl);
+      try {
+        await this.createTable(executor, tableConfig.name, tableConfig.ddl);
+      } catch (e) {
+        if (backupedDDL) {
+          this.log(`${tableConfig.fullname}: create table failed: ${e}`);
+          this.log(`${tableConfig.fullname}: restore previous table version`);
+          await this.createTable(executor, tableConfig.name, backupedDDL);
+        }
+      }
     }
     await this.setTableParameters(executor, tableConfig, {
       'sls.athena.hash': hash(tableConfig.ddl),
