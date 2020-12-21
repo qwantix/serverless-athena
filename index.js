@@ -107,10 +107,53 @@ class ServerlessAthenaPlugin {
   constructor(serverless, options) {
     this.serverless = serverless;
     this.options = options;
+
+    this.commands = {
+      'athena': {
+        usage: 'Deploy Athena resources',
+        commands: {
+          deploy: {
+            usage: 'Deploy resources',
+            lifecycleEvents: [
+              'deploy'
+            ],
+            options: {
+              database: {
+                usage: 'Specify the database you want to deploy ' +
+                  '(e.g. "--database \'mydb\'" or "-d \'mydb\'")',
+                shortcut: 'd',
+              },
+              table: {
+                usage: 'Specify the table you want to deploy ' +
+                  '(e.g. "--table \'mytable\'" or "-t \'mytable\'")',
+                shortcut: 't',
+              },
+            },
+          },
+          remove: {
+            usage: 'Removing resources',
+            lifecycleEvents: [
+              'remove'
+            ],
+            options: {
+              database: {
+                usage: 'Specify the database you want to deploy ' +
+                  '(e.g. "--database \'mydb\'" or "-d \'mydb\'")',
+                shortcut: 'd',
+              },
+            },
+          }
+        }
+      }
+    };
+
     this.hooks = {
       'after:deploy:deploy': this.deploy.bind(this),
       'remove:remove': this.remove.bind(this),
+      'athena:deploy:deploy': this.deploy.bind(this),
+      'athena:remove:remove': this.remove.bind(this),
     };
+
     this.provider = this.serverless.getProvider('aws');
     this.servicePath = this.serverless.config.servicePath || '';
     this.packagePath =
@@ -450,7 +493,7 @@ class ServerlessAthenaPlugin {
   }
 
   async deployDatabase(d) {
-    this.log('Deploy database:', d.name);
+    this.log(`${d.name}: Entering deploy database`);
     const dbExecutor = getExecutor({
       catalog: d.catalog,
       provider: this.provider,
@@ -477,12 +520,18 @@ class ServerlessAthenaPlugin {
     const tables = await this.listTables(d.catalog, d.name)
 
     for (let tableConfig of d.tables) {
+      if (this.options.table && tableConfig.name !== this.options.table) {
+        continue; // Ignore
+      }
       const table = tables.find(t => t.Name === tableConfig.name);
       await this.deployTable(tableExecutor, tableConfig, table)
     }
 
-    this.removeTrailingTables(tableExecutor, tables, d.tables)
-    this.log('Leaving deploy');
+    if (this.options.table) {
+      await this.removeTrailingTables(tableExecutor, tables, d.tables)
+    }
+
+    this.log(`${d.name}: Leaving deploy database`);
   }
 
   // Remove previously deployed database
@@ -530,10 +579,15 @@ class ServerlessAthenaPlugin {
 
 
     for (let db of databases) {
+      if (this.options.database && db.name !== this.options.database) {
+        continue; // Ignore
+      }
       await this.deployDatabase(db)
     }
 
-    await this.removeTrailingDatabases(databases)
+    if (!this.options.database) {
+      await this.removeTrailingDatabases(databases)
+    }
 
     this.log('Leaving deploy');
   }
@@ -543,9 +597,12 @@ class ServerlessAthenaPlugin {
       databases,
     } = this.config;
     this.log('Entering remove');
-    await Promise.all(databases.map(async (d) => {
-      await this.removeDatabase(d);
-    }));
+    for (let db of databases) {
+      if (this.options.database && db.name !== this.options.database) {
+        continue; // Ignore
+      }
+      await this.removeDatabase(db);
+    }
     this.log('Leaving remove');
   }
 
